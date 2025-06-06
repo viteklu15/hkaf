@@ -54,7 +54,7 @@ class _DryerScreenState extends State<DryerScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _setIpForDevice("fff", "192.168.0.114");
+    _setIpForDevice("fff", "192.168.0.111");
     _loadDevices();
 
     _modeWatchTimer = Timer.periodic(const Duration(milliseconds: 1000), (_) {
@@ -655,7 +655,7 @@ class _DryerScreenState extends State<DryerScreen> with WidgetsBindingObserver {
     final displayEnd = isStopped ? Colors.red : end;
 
     return GestureDetector(
-      onTap: () async {
+      onTap: !_statusConfirmed ? null : () async {
         if (modeProgram == index) {
           setState(() {
             modeProgram = 0;
