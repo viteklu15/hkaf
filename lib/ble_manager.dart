@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:geolocator/geolocator.dart'; // обязательно вверху
 
 class BleManager {
   static final Uuid defaultServiceUuid = Uuid.parse(
@@ -24,17 +25,28 @@ class BleManager {
     : serviceUuid = serviceUuid ?? defaultServiceUuid,
       characteristicUuid = characteristicUuid ?? defaultCharacteristicUuid;
 
-  Future<bool> _checkPermissions() async {
-    // запрос разрешения
-    final statuses =
-        await [
-          Permission.location,
-          Permission.bluetooth,
-          Permission.bluetoothScan,
-          Permission.bluetoothConnect,
-        ].request();
+  Future<bool> _checkPermissions(void Function(String) onLog) async {
+    final permissions = [
+      Permission.location,
+      Permission.bluetoothScan,
+      Permission.bluetoothConnect,
+    ];
 
-    return statuses.values.every((status) => status.isGranted);
+    final statuses = await permissions.request();
+
+    // for (var entry in statuses.entries) {
+    //   // onLog(
+    //   //   '[BLE PERM] ${entry.key.toString().split('.').last}: ${entry.value}',
+    //   // );
+    // }
+
+    final allGranted = statuses.values.every((status) => status.isGranted);
+    // onLog('[BLE PERM] allGranted = $allGranted');
+
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    // onLog('[BLE PERM] location enabled = $serviceEnabled');
+
+    return allGranted && serviceEnabled;
   }
 
   Future<void> scanAndConnect(
@@ -45,9 +57,17 @@ class BleManager {
     required void Function(String message) onLog,
   }) async {
     // 🔒 Проверка разрешений
-    if (!await _checkPermissions()) {
-      onLog('❌ Требуются разрешения на BLE и геолокацию');
-      onError('Разрешения не получены');
+    if (!await _checkPermissions(onLog)) {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
+      if (!serviceEnabled) {
+        onLog('❌ Геолокация отключена');
+        onError('Пожалуйста, включите геолокацию на устройстве');
+      } else {
+        onLog('❌ Требуются разрешения на BLE и геолокацию');
+        onError('Разрешения не получены');
+      }
+
       return;
     }
 

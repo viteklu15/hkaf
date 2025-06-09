@@ -7,6 +7,7 @@ int flagDelayStart = 0;
 ValueNotifier<int> modeProgram1 = ValueNotifier<int>(0);
 int targetTemperature = 0;
 ValueNotifier<int> uf = ValueNotifier<int>(0);
+ValueNotifier<int> muz = ValueNotifier<int>(0);
 int utc = 0;
 int sens = 0;
 int mT = 0;
@@ -28,7 +29,7 @@ class NetworkService {
       final uri = Uri.parse(url);
       final response = await http.get(uri);
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200) { 
         return response.body;
       } else {
         throw Exception('Ошибка запроса: ${response.statusCode}');
@@ -70,7 +71,7 @@ class NetworkService {
       // Таймаут в 3 секунды на случай зависания
       final response = await http
           .get(Uri.parse(url))
-          .timeout(const Duration(seconds: 3));
+          .timeout(const Duration(seconds: 5));
 
       if (response.statusCode != 200) {
         print("⚠️ Сервер вернул код: ${response.statusCode}");
@@ -91,6 +92,7 @@ class NetworkService {
       modeProgram1.value = data["mode_program"] ?? 0;
       targetTemperature = data["targetTemperature"] ?? 0;
       uf.value = data["UF"] ?? 0;
+      muz.value = data["muz"] ?? 0;
       sens = data["sens"] ?? 0;
       utc = data["UTC"] ?? 0;
       mT = data["mT"] ?? 0;

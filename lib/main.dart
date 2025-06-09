@@ -54,7 +54,7 @@ class _DryerScreenState extends State<DryerScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _setIpForDevice("fff", "192.168.0.111");
+    _setIpForDevice("fff", "192.168.0.119");
     _loadDevices();
 
     _modeWatchTimer = Timer.periodic(const Duration(milliseconds: 1000), (_) {
@@ -655,72 +655,80 @@ class _DryerScreenState extends State<DryerScreen> with WidgetsBindingObserver {
     final displayEnd = isStopped ? Colors.red : end;
 
     return GestureDetector(
-      onTap: !_statusConfirmed ? null : () async {
-        if (modeProgram == index) {
-          setState(() {
-            modeProgram = 0;
-            modeProgram1.value = 0;
-            _localActionUntil = DateTime.now().add(const Duration(seconds: 2));
-          });
+      onTap:
+          !_statusConfirmed
+              ? null
+              : () async {
+                if (modeProgram == index) {
+                  setState(() {
+                    modeProgram = 0;
+                    modeProgram1.value = 0;
+                    _localActionUntil = DateTime.now().add(
+                      const Duration(seconds: 2),
+                    );
+                  });
 
-          if (deviceIp != null) {
-            await NetworkService.set_prog(
-              comand: "set_prog?prog=0,0,0,42,1,15",
-              deviceIp: deviceIp!,
-            );
-          }
+                  if (deviceIp != null) {
+                    await NetworkService.set_prog(
+                      comand: "set_prog?prog=0,0,0,42,1,15",
+                      deviceIp: deviceIp!,
+                    );
+                  }
 
-          await Future.delayed(const Duration(seconds: 2));
-          return;
-        }
+                  await Future.delayed(const Duration(seconds: 2));
+                  return;
+                }
 
-        final modeMap = {
-          "СТАНДАРТНЫЙ": DryerMode.standart,
-          "УМНЫЙ РЕЖИМ": DryerMode.smart,
-          "БЫСТРАЯ СУШКА": DryerMode.fast,
-          "БЕЗ НАГРЕВА": DryerMode.noHeat,
-          "ПЕРСОНАЛЬНЫЙ": DryerMode.personal,
-          "ЛЁГКАЯ ГЛАЖКА": DryerMode.iron,
-        };
+                final modeMap = {
+                  "СТАНДАРТНЫЙ": DryerMode.standart,
+                  "УМНЫЙ РЕЖИМ": DryerMode.smart,
+                  "БЫСТРАЯ СУШКА": DryerMode.fast,
+                  "БЕЗ НАГРЕВА": DryerMode.noHeat,
+                  "ПЕРСОНАЛЬНЫЙ": DryerMode.personal,
+                  "ЛЁГКАЯ ГЛАЖКА": DryerMode.iron,
+                };
 
-        final mode = modeMap[title];
-        if (mode != null && deviceIp != null) {
-          ModeSettingsDialog.show(
-            context,
-            deviceIp: deviceIp!,
-            mode,
-            onConfirmed: () {
-              setState(() {
-                _localActionUntil = DateTime.now().add(
-                  const Duration(seconds: 3),
-                );
-                modeProgram = index;
-                modeProgram1.value = index;
-              });
-            },
-          );
-        }
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(colors: [displayStart, displayEnd]),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(displayIcon, size: 40, color: Colors.white),
-              const SizedBox(height: 8),
-              Text(
-                displayTitle,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+                final mode = modeMap[title];
+                if (mode != null && deviceIp != null) {
+                  ModeSettingsDialog.show(
+                    context,
+                    deviceIp: deviceIp!,
+                    mode,
+                    onConfirmed: () {
+                      setState(() {
+                        _localActionUntil = DateTime.now().add(
+                          const Duration(seconds: 3),
+                        );
+                        modeProgram = index;
+                        modeProgram1.value = index;
+                      });
+                    },
+                  );
+                }
+              },
+      child: Opacity(
+        opacity: !_statusConfirmed ? 0.5 : 1.0,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(colors: [displayStart, displayEnd]),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(displayIcon, size: 40, color: Colors.white),
+                const SizedBox(height: 8),
+                Text(
+                  displayTitle,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
