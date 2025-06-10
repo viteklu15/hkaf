@@ -76,7 +76,17 @@ class _AddNewDeviceScreenState extends State<AddNewDeviceScreen> {
 
     bleManager.scanAndConnect(
       deviceName,
-      onConnected: () {
+      onConnected: () async {
+        try {
+          await bleManager.sendCommand("con~1;");
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Ошибка отправки команды: $e")),
+            );
+          }
+        }
+
         setState(() {
           isConnected = true;
           isConnecting = false;

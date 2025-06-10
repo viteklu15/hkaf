@@ -187,7 +187,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               titleColor: Colors.green,
             ),
-
             _settingBlock(
               title: "Звуки",
               description:
@@ -211,7 +210,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               titleColor: Colors.green,
             ),
-
             _settingBlock(
               title: "Добавить устройство",
               description:

@@ -90,6 +90,17 @@ class BleManager {
     }, onError: (e) => onLog('❌ Ошибка сканирования: $e'));
   }
 
+  Future<void> sendCommand(String command) async {
+    if (characteristic == null) {
+      throw Exception("BLE characteristic is not available");
+    }
+
+    await flutterReactiveBle.writeCharacteristicWithoutResponse(
+      characteristic!,
+      value: utf8.encode(command),
+    );
+  }
+
   void _connectToDevice(
     DiscoveredDevice device, {
     required void Function() onConnected,
@@ -163,7 +174,7 @@ class BleManager {
     characteristic = null;
   }
 
-  void dispose() {
-    disconnect();
+  Future<void> dispose() async {
+    await disconnect();
   }
 }
