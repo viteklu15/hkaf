@@ -22,6 +22,12 @@ class _AddNewDeviceScreenState extends State<AddNewDeviceScreen> {
 
   late final BleManager bleManager = BleManager();
 
+  @override
+  void initState() {
+    super.initState();
+    _nameController.text = "Шкаф 1";
+  }
+
   List<String> wifiNetworks = [];
   String? selectedNetwork;
   bool isConnected = false;
