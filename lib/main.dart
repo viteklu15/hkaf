@@ -8,6 +8,7 @@ import 'ble_manager.dart';
 import 'WIFI_service.dart';
 import 'door_open_dialog.dart';
 import 'mode_settings_dialog.dart';
+import 'add_new_device_screen.dart';
 import 'dart:async';
 
 void main() {
@@ -54,7 +55,7 @@ class _DryerScreenState extends State<DryerScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _setIpForDevice("fff", "192.168.0.119");
+    _setIpForDevice("fff", "192.168.0.110");
     _loadDevices();
 
     _modeWatchTimer = Timer.periodic(const Duration(milliseconds: 1000), (_) {
@@ -180,66 +181,51 @@ class _DryerScreenState extends State<DryerScreen> with WidgetsBindingObserver {
         deviceIp = ip;
 
         bool statusOk = false;
-        if (ip != null && ip.isNotEmpty) {
-          bool gotStatus;
-          try {
-            gotStatus = await NetworkService.statusGET(deviceIp: ip);
 
+        if (ip != null && ip.isNotEmpty) {
+          try {
+            final gotStatus = await NetworkService.statusGET(deviceIp: ip);
             if (gotStatus) {
               _statusConfirmed = true;
-              setState(() {
-                connectionStateColor = Colors.green;
-              });
-              statusOk = true;
+              setState(() => connectionStateColor = Colors.green);
               _startStatusPolling();
+              statusOk = true;
             } else {
               print("⌛ Статус не получен — запускаем BLE IP запрос");
               setState(() => connectionStateColor = Colors.red);
-              // _showSnackBar("IP не отвечает, пробуем через BLE...");
               _waitForIpFromBle();
             }
           } catch (e) {
             print("BLE требуется, ошибка запроса: $e");
           }
 
-          // ⏱ Если в течение 3 секунд статус не получен, запускаем BLE
           Future.delayed(const Duration(seconds: 3), () {
             if (!_statusConfirmed && mounted) {
               print("⌛ Статус не получен — запускаем BLE IP запрос");
               setState(() => connectionStateColor = Colors.red);
-              // _showSnackBar("IP не отвечает, пробуем через BLE...");
               _waitForIpFromBle();
             }
           });
-        }
-
-        if (!statusOk && serial != null) {
-          setState(() => connectionStateColor = Colors.white);
-          await bleManager.disconnect();
-          bleManager.scanAndConnect(
-            serial,
-            onConnected: () async {
-              final ip = deviceIp;
-              if (ip != null) {
-                final gotStatus = await NetworkService.statusGET(deviceIp: ip);
-                if (gotStatus) {
-                  _statusConfirmed = true;
-                  setState(() => connectionStateColor = Colors.green);
-                  _startStatusPolling();
-                }
-              }
-              _waitForIpFromBle();
-            },
-
-            onDisconnected: () {
-              setState(() => connectionStateColor = Colors.red);
-            },
-            onError: (err) {
-              setState(() => connectionStateColor = Colors.red);
-              // _showSnackBar('Ошибка BLE: $err');
-            },
-            onLog: _showSnackBar,
-          );
+        } else {
+          // 📌 Если IP нет — сразу пробуем BLE
+          if (serial != null) {
+            setState(() => connectionStateColor = Colors.red);
+            await bleManager.disconnect();
+            bleManager.scanAndConnect(
+              serial,
+              onConnected: () {
+                _startStatusPolling();
+                _waitForIpFromBle();
+              },
+              onDisconnected: () {
+                setState(() => connectionStateColor = Colors.red);
+              },
+              onError: (err) {
+                setState(() => connectionStateColor = Colors.red);
+              },
+              onLog: _showSnackBar,
+            );
+          }
         }
       }
     }
@@ -452,10 +438,15 @@ class _DryerScreenState extends State<DryerScreen> with WidgetsBindingObserver {
 
                         if (!statusOk && serial != null) {
                           await bleManager.disconnect();
+
+                          // 🔴 ДОБАВЛЯЕМ ЗАДЕРЖКУ
+                          await Future.delayed(
+                            const Duration(seconds: 8), // задержка
+                          ); // или сколько нужно
+
                           bleManager.scanAndConnect(
                             serial,
                             onConnected: () {
-                              // setState(() => connectionStateColor = Colors.green,);
                               _startStatusPolling();
                               _waitForIpFromBle();
                             },
@@ -490,6 +481,30 @@ class _DryerScreenState extends State<DryerScreen> with WidgetsBindingObserver {
                             (context) => SettingsScreen(deviceIp: deviceIp),
                       ),
                     );
+
+                    if (!_statusConfirmed) {
+                      // Показываем индикатор только если статус не получен
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (BuildContext context) {
+                          return const Center(
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                            ),
+                          );
+                        },
+                      );
+
+                      await Future.delayed(
+                        const Duration(seconds: 8),
+                      ); //задержка
+
+                      if (mounted) Navigator.of(context).pop();
+                    }
+
                     _loadDevices();
                   },
                 ),
@@ -508,7 +523,11 @@ class _DryerScreenState extends State<DryerScreen> with WidgetsBindingObserver {
                       Flexible(
                         child: Center(
                           child: Text(
-                            "Выберите программу",
+                            dropdownItems.isEmpty
+                                ? "Добавьте устройство"
+                                : !_statusConfirmed
+                                ? "Нет подключения"
+                                : "Выберите программу",
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               fontSize: 26,

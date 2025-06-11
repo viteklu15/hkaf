@@ -16,6 +16,8 @@ class AddNewDeviceScreen extends StatefulWidget {
 }
 
 class _AddNewDeviceScreenState extends State<AddNewDeviceScreen> {
+  bool isWifiLoading = false;
+
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _serialController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
@@ -126,8 +128,12 @@ class _AddNewDeviceScreenState extends State<AddNewDeviceScreen> {
   }
 
   void _listenToWifiList() {
+    setState(() => isWifiLoading = true);
+
     bleManager.listenToWifiList((networks) {
       setState(() {
+        isWifiLoading = false;
+
         for (int i = 0; i < networks.length; i++) {
           if (i >= wifiNetworks.length) {
             wifiNetworks.add(networks[i]);
@@ -296,7 +302,19 @@ class _AddNewDeviceScreenState extends State<AddNewDeviceScreen> {
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 20),
-            if (isConnected && wifiNetworks.isNotEmpty) ...[
+            if (isConnected && isWifiLoading) ...[
+              const SizedBox(height: 20),
+              const Row(
+                children: [
+                  CircularProgressIndicator(color: Colors.white),
+                  SizedBox(width: 12),
+                  Text(
+                    "Поиск Wi-Fi сетей...",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ],
+              ),
+            ] else if (isConnected && wifiNetworks.isNotEmpty) ...[
               const SizedBox(height: 20),
               DropdownButton<String>(
                 value: selectedNetwork,
@@ -331,6 +349,7 @@ class _AddNewDeviceScreenState extends State<AddNewDeviceScreen> {
                 onChanged: (_) => setState(() {}),
               ),
             ],
+
             const SizedBox(height: 30),
             if (_allFieldsFilled)
               ElevatedButton(
