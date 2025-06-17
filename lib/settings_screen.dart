@@ -124,22 +124,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () => Navigator.pop(context),
-            ),
-            const SizedBox(height: 10),
-            Center(
-              child: Text(
-                "НАСТРОЙКИ",
-                style: GoogleFonts.orbitron(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+            const SizedBox(height: 40),
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                  ),
                 ),
-              ),
+                Align(
+                  alignment: Alignment.center,
+                  child: Text(
+                    "НАСТРОЙКИ",
+                    style: GoogleFonts.orbitron(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 30),
+
             _settingBlock(
               title: "Часовой пояс",
               description:

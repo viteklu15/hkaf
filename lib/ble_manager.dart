@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'globals.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:geolocator/geolocator.dart'; // обязательно вверху
@@ -70,14 +71,17 @@ class BleManager {
 
       return;
     }
-
+    print("Scan");
     // onLog('🔍 Начато сканирование BLE устройств...');
     scanSub = flutterReactiveBle.scanForDevices(withServices: []).listen((
       device,
     ) {
       // onLog('📡 Найдено устройство: ${device.name} (${device.id})');
+      print('📡 Найдено устройство: ${device.name} (${device.id})');
       if (device.name == serial) {
         // onLog('✅ Устройство совпадает с serial: $serial');
+        print('✅ Устройство совпадает с serial: $serial');
+
         scanSub?.cancel();
         _connectToDevice(
           device,
@@ -108,31 +112,40 @@ class BleManager {
     required void Function(String error) onError,
     required void Function(String message) onLog,
   }) {
-    // onLog('🔗 Подключение к ${device.name} (${device.id})...');
-    _connectionSub = flutterReactiveBle
-        .connectToDevice(id: device.id)
-        .listen(
-          (connectionState) {
-            if (connectionState.connectionState ==
-                DeviceConnectionState.connected) {
-              // onLog('✅ Устройство подключено: ${device.name}');
-              characteristic = QualifiedCharacteristic(
-                deviceId: device.id,
-                serviceId: serviceUuid,
-                characteristicId: characteristicUuid,
-              );
-              onConnected();
-            } else if (connectionState.connectionState ==
-                DeviceConnectionState.disconnected) {
-              onLog('⚠️ Устройство отключено');
-              onDisconnected();
-            }
-          },
-          onError: (error) {
-            onLog('❌ Ошибка подключения: $error');
-            onError(error.toString());
-          },
-        );
+    void connect() {
+      _connectionSub = flutterReactiveBle
+          .connectToDevice(id: device.id)
+          .listen(
+            (connectionState) {
+              if (connectionState.connectionState ==
+                  DeviceConnectionState.connected) {
+                characteristic = QualifiedCharacteristic(
+                  deviceId: device.id,
+                  serviceId: serviceUuid,
+                  characteristicId: characteristicUuid,
+                );
+                onConnected();
+              } else if (connectionState.connectionState ==
+                  DeviceConnectionState.disconnected) {
+                onLog('⚠️ Устройство отключено');
+                Future.delayed(const Duration(seconds: 2), () {
+                  scanAndConnect(
+                    device.name,
+                    onConnected: onConnected,
+                    onDisconnected: onDisconnected,
+                    onError: onError,
+                    onLog: onLog,
+                  );
+                });
+              }
+            },
+            onError: (error) {
+              onLog('❌ Ошибка подключения: $error');
+              onError(error.toString());
+            },
+          );
+    }
+      connect(); // без задержки    
   }
 
   void listenToWifiList(void Function(List<String> networks) onData) {

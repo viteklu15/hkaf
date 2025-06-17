@@ -193,21 +193,31 @@ class _DryerScreenState extends State<DryerScreen> with WidgetsBindingObserver {
             } else {
               print("⌛ Статус не получен — запускаем BLE IP запрос");
               setState(() => connectionStateColor = Colors.red);
-              _waitForIpFromBle();
             }
           } catch (e) {
             print("BLE требуется, ошибка запроса: $e");
           }
 
-          Future.delayed(const Duration(seconds: 3), () {
-            if (!_statusConfirmed && mounted) {
-              print("⌛ Статус не получен — запускаем BLE IP запрос");
-              setState(() => connectionStateColor = Colors.red);
-              _waitForIpFromBle();
-            }
-          });
+          if (!statusOk && serial != null) {
+            await bleManager.disconnect();
+            bleManager.scanAndConnect(
+              serial,
+              onConnected: () {
+                _startStatusPolling();
+                _waitForIpFromBle(); // именно здесь теперь идёт запрос IP
+              },
+              onDisconnected: () {
+                setState(() => connectionStateColor = Colors.red);
+              },
+              onError: (err) {
+                setState(() => connectionStateColor = Colors.red);
+              },
+              onLog: _showSnackBar,
+            );
+          }
         } else {
           // 📌 Если IP нет — сразу пробуем BLE
+          print("⚠️ IP отсутствует, serial = $serial");
           if (serial != null) {
             setState(() => connectionStateColor = Colors.red);
             await bleManager.disconnect();
@@ -254,6 +264,7 @@ class _DryerScreenState extends State<DryerScreen> with WidgetsBindingObserver {
         bleManager.characteristic!,
         value: utf8.encode('IP~1;'),
       );
+      print("✅ Команда IP~1; отправлена");
     } catch (e) {
       if (mounted) {
         // ScaffoldMessenger.of(context).showSnackBar(
@@ -422,27 +433,27 @@ class _DryerScreenState extends State<DryerScreen> with WidgetsBindingObserver {
                             print("BLE требуется, ошибка запроса: $e");
                           }
 
-                          Future.delayed(const Duration(seconds: 3), () {
-                            if (!_statusConfirmed && mounted) {
-                              print(
-                                "⌛ Статус не получен — запускаем BLE IP запрос",
-                              );
-                              setState(() => connectionStateColor = Colors.red);
-                              // _showSnackBar(
-                              //   "IP не отвечает, пробуем через BLE...",
-                              // );
-                              _waitForIpFromBle();
-                            }
-                          });
+                          // Future.delayed(const Duration(seconds: 3), () {
+                          //   if (!_statusConfirmed && mounted) {
+                          //     print(
+                          //       "⌛ Статус не получен — запускаем BLE IP запрос",
+                          //     );
+                          //     setState(() => connectionStateColor = Colors.red);
+                          //     // _showSnackBar(
+                          //     //   "IP не отвечает, пробуем через BLE...",
+                          //     // );
+                          //     _waitForIpFromBle();
+                          //   }
+                          // });
                         }
 
                         if (!statusOk && serial != null) {
                           await bleManager.disconnect();
 
-                          // 🔴 ДОБАВЛЯЕМ ЗАДЕРЖКУ
-                          await Future.delayed(
-                            const Duration(seconds: 8), // задержка
-                          ); // или сколько нужно
+                          // // 🔴 ДОБАВЛЯЕМ ЗАДЕРЖКУ
+                          // await Future.delayed(
+                          //   const Duration(seconds: 10), // задержка
+                          // ); // или сколько нужно
 
                           bleManager.scanAndConnect(
                             serial,
@@ -482,7 +493,7 @@ class _DryerScreenState extends State<DryerScreen> with WidgetsBindingObserver {
                       ),
                     );
 
-                    if (!_statusConfirmed) {
+                    if (!_statusConfirmed && selectedItem != null) {
                       // Показываем индикатор только если статус не получен
                       showDialog(
                         context: context,
@@ -498,9 +509,9 @@ class _DryerScreenState extends State<DryerScreen> with WidgetsBindingObserver {
                         },
                       );
 
-                      await Future.delayed(
-                        const Duration(seconds: 8),
-                      ); //задержка
+                      // await Future.delayed(
+                      //   const Duration(seconds: 2),
+                      // ); //задержка
 
                       if (mounted) Navigator.of(context).pop();
                     }
@@ -522,18 +533,38 @@ class _DryerScreenState extends State<DryerScreen> with WidgetsBindingObserver {
                     if (!isProgramSelected)
                       Flexible(
                         child: Center(
-                          child: Text(
-                            dropdownItems.isEmpty
-                                ? "Добавьте устройство"
-                                : !_statusConfirmed
-                                ? "Нет подключения"
-                                : "Выберите программу",
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 26,
-                              color: Colors.white70,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (!_statusConfirmed && dropdownItems.isNotEmpty)
+                                const Padding(
+                                  padding: EdgeInsets.only(right: 10),
+                                  child: SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 3,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white70,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              Text(
+                                dropdownItems.isEmpty
+                                    ? "Добавьте устройство"
+                                    : !_statusConfirmed
+                                    ? "  Поиск устройства"
+                                    : "Выберите программу",
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 26,
+                                  color: Colors.white70,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       )

@@ -2,6 +2,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'globals.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -17,6 +18,7 @@ class AddNewDeviceScreen extends StatefulWidget {
 
 class _AddNewDeviceScreenState extends State<AddNewDeviceScreen> {
   bool isWifiLoading = false;
+  bool _wasQrScanned = false;
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _serialController = TextEditingController();
@@ -37,10 +39,16 @@ class _AddNewDeviceScreenState extends State<AddNewDeviceScreen> {
   bool isConnecting = false;
 
   bool get _allFieldsFilled {
-    return _nameController.text.isNotEmpty &&
-        _serialController.text.isNotEmpty &&
-        (!isConnected ||
-            (selectedNetwork != null && passwordController.text.length >= 8));
+    final nameFilled = _nameController.text.isNotEmpty;
+    final serialFilled = _serialController.text.isNotEmpty;
+
+    if (!_wasQrScanned) {
+      return nameFilled && serialFilled;
+    } else {
+      return isConnected &&
+          selectedNetwork != null &&
+          passwordController.text.length >= 8;
+    }
   }
 
   @override
@@ -63,13 +71,16 @@ class _AddNewDeviceScreenState extends State<AddNewDeviceScreen> {
     );
 
     if (result != null) {
-      _serialController.text = result;
+      setState(() {
+        _serialController.text = result;
+      });
     }
   }
 
   void _onDeviceScanned(String deviceName) {
     setState(() {
       _serialController.text = deviceName;
+      _wasQrScanned = true;
     });
     _initPermissionsAndScan(deviceName);
   }
@@ -98,6 +109,7 @@ class _AddNewDeviceScreenState extends State<AddNewDeviceScreen> {
         setState(() {
           isConnected = true;
           isConnecting = false;
+          _wasQrScanned = true;
         });
         _listenToWifiList();
       },
@@ -261,20 +273,31 @@ class _AddNewDeviceScreenState extends State<AddNewDeviceScreen> {
         child: Column(
           children: [
             const SizedBox(height: 40),
-            IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () => Navigator.pop(context),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              "Новое устройство",
-              style: GoogleFonts.orbitron(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Align(
+                  alignment: Alignment.center,
+                  child: Text(
+                    "Новое устройство",
+                    style: GoogleFonts.orbitron(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 30),
+
             TextField(
               controller: _nameController,
               style: const TextStyle(color: Colors.white),

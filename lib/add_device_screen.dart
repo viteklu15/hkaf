@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'add_new_device_screen.dart';
 
 class AddDeviceScreen extends StatefulWidget {
@@ -42,9 +43,9 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
       devices.add(device);
     });
     _saveDevices().then((_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Устройство ${device['name']} добавлено')),
-      );
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   SnackBar(content: Text('Устройство ${device['name']} добавлено')),
+      // );
     });
   }
 
@@ -54,9 +55,9 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
       devices.removeAt(index);
     });
     _saveDevices().then((_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Устройство $deviceName удалено')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Устройство $deviceName удалено')));
     });
   }
 
@@ -74,87 +75,108 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
         ),
         child: Column(
           children: [
-            Row(
+            const SizedBox(height: 40),
+            Stack(
+              alignment: Alignment.center,
               children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                const Spacer(),
-                const Text(
-                  'Добавление устройств',
-                  style: TextStyle(color: Colors.white, fontSize: 18),
-                ),
-                const Spacer(flex: 2),
-              ],
-            ),
-            const SizedBox(height: 20),
-            devices.isEmpty
-                ? const Expanded(
-                    child: Center(
-                      child: Text(
-                        'Нет добавленных устройств',
-                        style: TextStyle(color: Colors.white70, fontSize: 16),
-                      ),
-                    ),
-                  )
-                : Expanded(
-                    child: ListView.builder(
-                      itemCount: devices.length,
-                      itemBuilder: (context, index) {
-                        final device = devices[index];
-                        return Card(
-                          color: Colors.white10,
-                          child: ListTile(
-                            title: Text(
-                              device['name'] ?? '',
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                            subtitle: Text(
-                              device['serial'] ?? '',
-                              style: const TextStyle(color: Colors.white60),
-                            ),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.redAccent),
-                              onPressed: () => _removeDevice(index),
-                            ),
-                          ),
-                        );
-                      },
+                Align(
+                  alignment: Alignment.center,
+                  child: Text(
+                    'Добавление устройств',
+                    style: GoogleFonts.orbitron(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
-  SafeArea(
-  top: false,
-  child: Padding(
-    padding: const EdgeInsets.only(top: 12, bottom: 16), // отступ снизу
-    child: SafeArea(
-  top: false,
-  child: Padding(
-    padding: const EdgeInsets.only(top: 12, bottom: 16), // отступ снизу
-    child: ElevatedButton.icon(
-      onPressed: () async {
-        final newDevice = await Navigator.push<Map<String, String>>(
-          context,
-          MaterialPageRoute(builder: (_) => const AddNewDeviceScreen()),
-        );
-        if (newDevice != null) {
-          _addDevice(newDevice);
-        }
-      },
-      icon: const Icon(Icons.add),
-      label: const Text('Добавить устройство'),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
-        minimumSize: const Size.fromHeight(48),
-      ),
-    ),
-  ),
-),
+                ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 30),
 
-  ),
-),
-
+            devices.isEmpty
+                ? const Expanded(
+                  child: Center(
+                    child: Text(
+                      'Нет добавленных устройств',
+                      style: TextStyle(color: Colors.white70, fontSize: 16),
+                    ),
+                  ),
+                )
+                : Expanded(
+                  child: ListView.builder(
+                    itemCount: devices.length,
+                    itemBuilder: (context, index) {
+                      final device = devices[index];
+                      return Card(
+                        color: Colors.white10,
+                        child: ListTile(
+                          title: Text(
+                            device['name'] ?? '',
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          subtitle: Text(
+                            device['serial'] ?? '',
+                            style: const TextStyle(color: Colors.white60),
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(
+                              Icons.delete,
+                              color: Colors.redAccent,
+                            ),
+                            onPressed: () => _removeDevice(index),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.only(
+                  top: 12,
+                  bottom: 16,
+                ), // отступ снизу
+                child: SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.only(
+                      top: 12,
+                      bottom: 16,
+                    ), // отступ снизу
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        final newDevice =
+                            await Navigator.push<Map<String, String>>(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const AddNewDeviceScreen(),
+                              ),
+                            );
+                        if (newDevice != null) {
+                          _addDevice(newDevice);
+                        }
+                      },
+                      icon: const Icon(Icons.add),
+                      label: const Text('Добавить устройство'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size.fromHeight(48),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
