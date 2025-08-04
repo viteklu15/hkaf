@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'WIFI_service.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 
 enum DryerMode { standart, smart, fast, noHeat, personal, iron }
 
@@ -91,17 +92,22 @@ class ModeSettingsDialog {
               content: SingleChildScrollView(
                 child: SizedBox(
                   width: 500,
+
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
+                      AutoSizeText(
                         getModeTitle(mode),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 26,
                           fontWeight: FontWeight.bold,
                         ),
+                        maxLines: 1,
+                        minFontSize: 14,
+                        overflow: TextOverflow.ellipsis,
                       ),
+
                       const SizedBox(height: 30),
 
                       // Температура
@@ -109,7 +115,7 @@ class ModeSettingsDialog {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           IconButton(
-                            iconSize: 48,
+                            iconSize: 40, // 👈 немного меньше
                             icon: Icon(
                               Icons.remove_circle,
                               color:
@@ -121,7 +127,6 @@ class ModeSettingsDialog {
                                       ? Colors.green
                                       : Colors.green.withOpacity(0.3),
                             ),
-
                             onPressed:
                                 allowTemp && mode == DryerMode.iron
                                     ? temperature == 60
@@ -134,16 +139,22 @@ class ModeSettingsDialog {
                                         setModalState(() => temperature -= 1)
                                     : null,
                           ),
-                          Text(
-                            "$temperature ºC",
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 40,
-                              fontWeight: FontWeight.w600,
+                          Flexible(
+                            child: AutoSizeText(
+                              "$temperature ºC",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 40,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              minFontSize: 18,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
                             ),
                           ),
                           IconButton(
-                            iconSize: 48,
+                            iconSize: 40,
                             icon: Icon(
                               Icons.add_circle,
                               color:
@@ -173,7 +184,7 @@ class ModeSettingsDialog {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           IconButton(
-                            iconSize: 48,
+                            iconSize: 40,
                             icon: Icon(
                               Icons.remove_circle,
                               color:
@@ -193,16 +204,22 @@ class ModeSettingsDialog {
                                     })
                                     : null,
                           ),
-                          Text(
-                            "${workHour.toString().padLeft(2, '0')}:${workMin.toString().padLeft(2, '0')}",
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 40,
-                              fontWeight: FontWeight.w600,
+                          Flexible(
+                            child: AutoSizeText(
+                              "${workHour.toString().padLeft(2, '0')}:${workMin.toString().padLeft(2, '0')}",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 40,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              minFontSize: 18,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
                             ),
                           ),
                           IconButton(
-                            iconSize: 48,
+                            iconSize: 40,
                             icon: Icon(
                               Icons.add_circle,
                               color:
@@ -228,14 +245,18 @@ class ModeSettingsDialog {
 
                       const SizedBox(height: 30),
 
-                      const Text(
+                      const AutoSizeText(
                         "ОТЛОЖЕННЫЙ СТАРТ",
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
                         ),
+                        maxLines: 1,
+                        minFontSize: 14,
+                        overflow: TextOverflow.ellipsis,
                       ),
+
                       const SizedBox(height: 12),
 
                       Row(
@@ -344,7 +365,7 @@ class ModeSettingsDialog {
                           Navigator.of(context).pop();
 
                           final String comand =
-                              "set_prog?prog=${delayHour},${delayMin},${mode.index+1},$temperature,$workHour,$workMin";
+                              "set_prog?prog=${delayHour},${delayMin},${mode.index + 1},$temperature,$workHour,$workMin";
 
                           try {
                             await NetworkService.set_prog(
@@ -358,21 +379,25 @@ class ModeSettingsDialog {
                           onConfirmed(); // после запроса
                         },
 
-                        child: const Text(
+                        child: const AutoSizeText(
                           "СТАРТ",
                           style: TextStyle(
-                            fontSize: 22, // было 26
-                            fontWeight:
-                                FontWeight
-                                    .w600, // можно оставить bold, но чуть легче
+                            fontSize: 22,
+                            fontWeight: FontWeight.w600,
                             color: Colors.white,
                           ),
+                          maxLines: 1,
+                          minFontSize: 14,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
+
+
+              
             );
           },
         );

@@ -10,6 +10,10 @@ import 'door_open_dialog.dart';
 import 'mode_settings_dialog.dart';
 import 'add_new_device_screen.dart';
 import 'dart:async';
+import 'package:geolocator/geolocator.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:auto_size_text/auto_size_text.dart';
+import 'dart:io';
 
 void main() {
   runApp(
@@ -51,6 +55,35 @@ class _DryerScreenState extends State<DryerScreen> with WidgetsBindingObserver {
   final BleManager bleManager = BleManager();
   Color connectionStateColor = Colors.white;
 
+  Future<void> requestPermissions() async {
+    print("📢 Запрос разрешений BLE и гео...");
+
+    if (Platform.isAndroid) {
+      await Permission.bluetoothScan.request();
+      await Permission.bluetoothConnect.request();
+      await Permission.locationWhenInUse.request();
+    } else if (Platform.isIOS) {
+      final status = await Geolocator.checkPermission();
+      if (status == LocationPermission.denied ||
+          status == LocationPermission.deniedForever) {
+        final result = await Geolocator.requestPermission();
+        print("📍 Георазрешение (iOS): $result");
+      }
+    }
+
+    await Future.delayed(const Duration(seconds: 2));
+
+    final geoStatus = await Geolocator.checkPermission();
+    print("🔄 Гео разрешение: $geoStatus");
+
+    if (geoStatus == LocationPermission.always ||
+        geoStatus == LocationPermission.whileInUse) {
+      print("✅ Гео разрешение получено");
+    } else {
+      print("⚠️ Гео разрешение отклонено");
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -58,9 +91,28 @@ class _DryerScreenState extends State<DryerScreen> with WidgetsBindingObserver {
     _setIpForDevice("fff", "192.168.0.110");
     _loadDevices();
 
-    _modeWatchTimer = Timer.periodic(const Duration(milliseconds: 1000), (_) {
-      // print("⏱ modeProgram1: ${modeProgram1.value}, modeProgram: $modeProgram");
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await Future.delayed(const Duration(milliseconds: 500));
 
+      await requestPermissions(); // ✅
+
+      final geoStatus = await Geolocator.checkPermission();
+      if (geoStatus == LocationPermission.always ||
+          geoStatus == LocationPermission.whileInUse) {
+        try {
+          final position = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.low,
+          );
+          print("📍 Геопозиция получена: $position");
+        } catch (e) {
+          print("❌ Ошибка получения геопозиции: $e");
+        }
+      } else {
+        print("⚠️ Геолокация недоступна, координаты не получены");
+      }
+    });
+
+    _modeWatchTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       final now = DateTime.now();
       if ((_localActionUntil == null || now.isAfter(_localActionUntil!)) &&
           modeProgram != modeProgram1.value) {
@@ -348,6 +400,7 @@ class _DryerScreenState extends State<DryerScreen> with WidgetsBindingObserver {
             const SizedBox(height: 30),
             Row(
               children: [
+                // Индикатор соединения
                 Container(
                   width: 14,
                   height: 14,
@@ -357,6 +410,8 @@ class _DryerScreenState extends State<DryerScreen> with WidgetsBindingObserver {
                     shape: BoxShape.circle,
                   ),
                 ),
+
+                // Выпадающий список устройств
                 if (dropdownItems.isNotEmpty)
                   DropdownButton<String>(
                     value: selectedItem,
@@ -366,7 +421,7 @@ class _DryerScreenState extends State<DryerScreen> with WidgetsBindingObserver {
                       color: Colors.white,
                     ),
                     iconSize: 28,
-                    style: const TextStyle(fontSize: 16),
+                    style: const TextStyle(fontSize: 14, color: Colors.white),
                     underline: const SizedBox(),
                     elevation: 2,
                     borderRadius: BorderRadius.circular(12),
@@ -407,54 +462,27 @@ class _DryerScreenState extends State<DryerScreen> with WidgetsBindingObserver {
 
                         bool statusOk = false;
                         if (ip != null && ip.isNotEmpty) {
-                          bool gotStatus;
                           try {
-                            gotStatus = await NetworkService.statusGET(
+                            final gotStatus = await NetworkService.statusGET(
                               deviceIp: ip,
                             );
-
                             if (gotStatus) {
-                              setState(() {
-                                connectionStateColor = Colors.green;
-                              });
+                              setState(
+                                () => connectionStateColor = Colors.green,
+                              );
                               statusOk = true;
                               _startStatusPolling();
                             } else {
-                              print(
-                                "⌛ Статус не получен — запускаем BLE IP запрос",
-                              );
                               setState(() => connectionStateColor = Colors.red);
-                              // _showSnackBar(
-                              //   "IP не отвечает, пробуем через BLE...",
-                              // );
                               _waitForIpFromBle();
                             }
                           } catch (e) {
                             print("BLE требуется, ошибка запроса: $e");
                           }
-
-                          // Future.delayed(const Duration(seconds: 3), () {
-                          //   if (!_statusConfirmed && mounted) {
-                          //     print(
-                          //       "⌛ Статус не получен — запускаем BLE IP запрос",
-                          //     );
-                          //     setState(() => connectionStateColor = Colors.red);
-                          //     // _showSnackBar(
-                          //     //   "IP не отвечает, пробуем через BLE...",
-                          //     // );
-                          //     _waitForIpFromBle();
-                          //   }
-                          // });
                         }
 
                         if (!statusOk && serial != null) {
                           await bleManager.disconnect();
-
-                          // // 🔴 ДОБАВЛЯЕМ ЗАДЕРЖКУ
-                          // await Future.delayed(
-                          //   const Duration(seconds: 10), // задержка
-                          // ); // или сколько нужно
-
                           bleManager.scanAndConnect(
                             serial,
                             onConnected: () {
@@ -466,7 +494,6 @@ class _DryerScreenState extends State<DryerScreen> with WidgetsBindingObserver {
                             },
                             onError: (err) {
                               setState(() => connectionStateColor = Colors.red);
-                              // _showSnackBar('Ошибка BLE: $err');
                             },
                             onLog: _showSnackBar,
                           );
@@ -474,14 +501,20 @@ class _DryerScreenState extends State<DryerScreen> with WidgetsBindingObserver {
                       }
                     },
                   ),
+
+                const SizedBox(width: 8), // отступ перед IP
+                // IP-адрес с обрезкой
                 Expanded(
                   child: Center(
                     child: Text(
                       deviceIp != null ? 'IP: $deviceIp' : '',
-                      style: const TextStyle(color: Colors.white, fontSize: 16),
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ),
+
+                // Иконка настроек справа
                 IconButton(
                   icon: const Icon(Icons.settings, color: Colors.white),
                   onPressed: () async {
@@ -494,11 +527,10 @@ class _DryerScreenState extends State<DryerScreen> with WidgetsBindingObserver {
                     );
 
                     if (!_statusConfirmed && selectedItem != null) {
-                      // Показываем индикатор только если статус не получен
                       showDialog(
                         context: context,
                         barrierDismissible: false,
-                        builder: (BuildContext context) {
+                        builder: (context) {
                           return const Center(
                             child: CircularProgressIndicator(
                               valueColor: AlwaysStoppedAnimation<Color>(
@@ -508,11 +540,6 @@ class _DryerScreenState extends State<DryerScreen> with WidgetsBindingObserver {
                           );
                         },
                       );
-
-                      // await Future.delayed(
-                      //   const Duration(seconds: 2),
-                      // ); //задержка
-
                       if (mounted) Navigator.of(context).pop();
                     }
 
@@ -551,17 +578,20 @@ class _DryerScreenState extends State<DryerScreen> with WidgetsBindingObserver {
                                     ),
                                   ),
                                 ),
-                              Text(
-                                dropdownItems.isEmpty
-                                    ? "Добавьте устройство"
-                                    : !_statusConfirmed
-                                    ? "  Поиск устройства"
-                                    : "Выберите программу",
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 26,
-                                  color: Colors.white70,
-                                  fontWeight: FontWeight.bold,
+                              Flexible(
+                                child: AutoSizeText(
+                                  dropdownItems.isEmpty
+                                      ? "Добавьте устройство"
+                                      : !_statusConfirmed
+                                      ? "  Поиск устройства"
+                                      : "Выберите программу",
+                                  textAlign: TextAlign.center,
+                                  maxLines: 1,
+                                  style: const TextStyle(
+                                    fontSize: 26,
+                                    color: Colors.white70,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ],
@@ -569,43 +599,65 @@ class _DryerScreenState extends State<DryerScreen> with WidgetsBindingObserver {
                         ),
                       )
                     else
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (flagDelayStart == 1) _infoText("Запуск отложен"),
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.thermostat,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                "$targetTemperature ºC",
-                                style: const TextStyle(
-                                  fontSize: 20,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (flagDelayStart == 1)
+                              AutoSizeText(
+                                "Запуск отложен",
+                                maxLines: 1,
+                                minFontSize: 10,
+                                maxFontSize: 22,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 22,
                                   color: Colors.white,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                            ],
-                          ),
-                        ],
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.thermostat,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 4),
+                                AutoSizeText(
+                                  "$targetTemperature ºC",
+                                  maxLines: 1,
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     if (isProgramSelected)
-                      Text(
-                        (hour == 0 && min == 0 && sec > 0)
-                            ? "$sec сек"
-                            : "${hour.toString().padLeft(2, '0')}:${min.toString().padLeft(2, '0')}",
-                        style: GoogleFonts.orbitron(
-                          fontSize: 48,
-                          color:
-                              (hour == 0 && min == 0 && sec > 0)
-                                  ? Colors.red
-                                  : Colors.white,
-                          fontWeight: FontWeight.bold,
+                      Expanded(
+                        child: AutoSizeText(
+                          (hour == 0 && min == 0 && sec > 0)
+                              ? "$sec сек"
+                              : "${hour.toString().padLeft(2, '0')}:${min.toString().padLeft(2, '0')}",
+                          maxLines: 1,
+                          minFontSize: 20,
+                          maxFontSize: 48,
+                          textAlign: TextAlign.end,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.orbitron(
+                            fontSize: 48,
+                            color:
+                                (hour == 0 && min == 0 && sec > 0)
+                                    ? Colors.red
+                                    : Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                   ],

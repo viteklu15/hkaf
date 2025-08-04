@@ -272,7 +272,7 @@ class _AddNewDeviceScreenState extends State<AddNewDeviceScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            const SizedBox(height: 40),
+            const SizedBox(height: 20),
             Stack(
               alignment: Alignment.center,
               children: [

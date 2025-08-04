@@ -75,7 +75,7 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
         ),
         child: Column(
           children: [
-            const SizedBox(height: 40),
+            const SizedBox(height: 20),
             Stack(
               alignment: Alignment.center,
               children: [

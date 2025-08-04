@@ -4,6 +4,7 @@ import 'globals.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:geolocator/geolocator.dart'; // обязательно вверху
+import 'dart:io';
 
 class BleManager {
   static final Uuid defaultServiceUuid = Uuid.parse(
@@ -26,7 +27,31 @@ class BleManager {
     : serviceUuid = serviceUuid ?? defaultServiceUuid,
       characteristicUuid = characteristicUuid ?? defaultCharacteristicUuid;
 
-  Future<bool> _checkPermissions(void Function(String) onLog) async {
+
+
+Future<bool> _checkPermissions(void Function(String onLog) onLog) async {
+  if (Platform.isIOS) {
+    // ✅ Проверка гео через Geolocator
+    final geoPermission = await Geolocator.checkPermission();
+    if (geoPermission == LocationPermission.denied ||
+        geoPermission == LocationPermission.deniedForever) {
+      // final result = await Geolocator.requestPermission();
+      // onLog('📍 Георазрешение (iOS): $result');
+    }
+
+    final geoStatus = await Geolocator.checkPermission();
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
+    // onLog('📡 Геослужба включена: $serviceEnabled');
+    // onLog('📍 Гео статус: $geoStatus');
+
+    // ⚠️ BLE разрешения не проверяем через permission_handler — считаем, что iOS сам покажет при необходимости
+
+    return (geoStatus == LocationPermission.always ||
+            geoStatus == LocationPermission.whileInUse) &&
+        serviceEnabled;
+  } else {
+    // ✅ Android: проверяем всё
     final permissions = [
       Permission.location,
       Permission.bluetoothScan,
@@ -34,21 +59,14 @@ class BleManager {
     ];
 
     final statuses = await permissions.request();
-
-    // for (var entry in statuses.entries) {
-    //   // onLog(
-    //   //   '[BLE PERM] ${entry.key.toString().split('.').last}: ${entry.value}',
-    //   // );
-    // }
-
     final allGranted = statuses.values.every((status) => status.isGranted);
-    // onLog('[BLE PERM] allGranted = $allGranted');
-
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    // onLog('[BLE PERM] location enabled = $serviceEnabled');
 
     return allGranted && serviceEnabled;
   }
+}
+
+
 
   Future<void> scanAndConnect(
     String serial, {
@@ -76,7 +94,7 @@ class BleManager {
     scanSub = flutterReactiveBle.scanForDevices(withServices: []).listen((
       device,
     ) {
-      // onLog('📡 Найдено устройство: ${device.name} (${device.id})');
+      //  onLog('📡 Найдено устройство: ${device.name} (${device.id})');
       print('📡 Найдено устройство: ${device.name} (${device.id})');
       if (device.name == serial) {
         // onLog('✅ Устройство совпадает с serial: $serial');
@@ -148,22 +166,32 @@ class BleManager {
       connect(); // без задержки    
   }
 
-  void listenToWifiList(void Function(List<String> networks) onData) {
-    if (characteristic == null) return;
+ void listenToWifiList(void Function(List<String> networks) onData) {
+  if (characteristic == null) return;
 
-    notifySub = flutterReactiveBle
-        .subscribeToCharacteristic(characteristic!)
-        .listen((data) {
-          final parts = utf8.decode(data).split(';~');
-          if (parts.length == 2) {
-            final index = int.tryParse(parts[0]);
-            final name = parts[1];
-            if (index != null && name.isNotEmpty) {
-              onData(List.generate(index + 1, (i) => i == index ? name : ''));
-            }
-          }
-        });
-  }
+  final List<String> wifiList = [];
+
+  notifySub = flutterReactiveBle
+      .subscribeToCharacteristic(characteristic!)
+      .listen((data) {
+    final parts = utf8.decode(data).split(';~');
+    if (parts.length == 2) {
+      final index = int.tryParse(parts[0]);
+      final name = parts[1];
+
+      if (index != null && name.isNotEmpty) {
+        while (wifiList.length <= index) {
+          wifiList.add('');
+        }
+        wifiList[index] = name;
+
+        // Передаём весь список каждый раз
+        onData(List.from(wifiList));
+      }
+    }
+  });
+}
+
 
   Future<void> sendWifiCredentials(String ssid, String password) async {
     if (characteristic == null)
