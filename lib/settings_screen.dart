@@ -112,147 +112,149 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF0f2027), Color(0xFF203a43), Color(0xFF2c5364)],
-            ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF0f2027), Color(0xFF203a43), Color(0xFF2c5364)],
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // const SizedBox(height: 40),
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
-                        onPressed: () => Navigator.pop(context),
-                      ),
+        ),
+        padding: EdgeInsets.only(
+          top: MediaQuery.of(context).padding.top + 20,
+          left: 16,
+          right: 16,
+          bottom: 24,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
                     ),
-                    Align(
-                      alignment: Alignment.center,
-                      child: Text(
-                        "НАСТРОЙКИ",
-                        style: GoogleFonts.orbitron(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 30),
-
-                _settingBlock(
-                  title: "Часовой пояс",
-                  description:
-                      "Выберите актуальный часовой пояс,\nдля корректного отображения времени.",
-                  trailing: GestureDetector(
-                    onTap: _showTimezoneDialog,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.green,
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      child: Text(
-                        '+$_selectedTimezone',
-                        style: const TextStyle(color: Colors.white),
+                  ),
+                  Align(
+                    alignment: Alignment.center,
+                    child: Text(
+                      "НАСТРОЙКИ",
+                      style: GoogleFonts.orbitron(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
                     ),
                   ),
-                  titleColor: Colors.green,
-                ),
-                _settingBlock(
-                  title: "UV обработка",
-                  description:
-                      "При активации во всех режимах\nвключается обработка ультрафиолетом.",
-                  trailing: CupertinoSwitch(
-                    value: _uvEnabled,
-                    onChanged: (bool value) async {
-                      setState(() {
-                        _uvEnabled = value;
-                        uf.value = value ? 1 : 0;
-                      });
+                ],
+              ),
+              const SizedBox(height: 30),
 
-                      if (widget.deviceIp != null &&
-                          widget.deviceIp!.isNotEmpty) {
-                        final command = "set_prog?UF=${uf.value}";
-                        await NetworkService.sendCommandToDevice(
-                          widget.deviceIp!,
-                          command,
-                        );
-                      }
-                    },
-                  ),
-                  titleColor: Colors.green,
-                ),
-                _settingBlock(
-                  title: "Звуки",
-                  description:
-                      "Эта настройка выключает/включает\nзвуковые уведомления.",
-                  trailing: CupertinoSwitch(
-                    value: _muzEnabled,
-                    onChanged: (bool value) async {
-                      setState(() {
-                        _muzEnabled = value;
-                        muz.value = value ? 1 : 0;
-                      });
-
-                      if (widget.deviceIp != null &&
-                          widget.deviceIp!.isNotEmpty) {
-                        final command = "set_prog?muz=${muz.value}";
-                        await NetworkService.sendCommandToDevice(
-                          widget.deviceIp!,
-                          command,
-                        );
-                      }
-                    },
-                  ),
-                  titleColor: Colors.green,
-                ),
-                _settingBlock(
-                  title: "Добавить устройство",
-                  description:
-                      "Для подключения к Яндекс Алиса,\nподключитесь к домашней сети.",
-                  trailing: IconButton(
-                    icon: const Icon(
-                      Icons.add_circle,
+              _settingBlock(
+                title: "Часовой пояс",
+                description:
+                    "Выберите актуальный часовой пояс,\nдля корректного отображения времени.",
+                trailing: GestureDetector(
+                  onTap: _showTimezoneDialog,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
                       color: Colors.green,
-                      size: 36,
+                      borderRadius: BorderRadius.circular(30),
                     ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const AddDeviceScreen(),
-                        ),
+                    child: Text(
+                      '+$_selectedTimezone',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+                titleColor: Colors.green,
+              ),
+              _settingBlock(
+                title: "UV обработка",
+                description:
+                    "При активации во всех режимах\nвключается обработка ультрафиолетом.",
+                trailing: CupertinoSwitch(
+                  value: _uvEnabled,
+                  onChanged: (bool value) async {
+                    setState(() {
+                      _uvEnabled = value;
+                      uf.value = value ? 1 : 0;
+                    });
+
+                    if (widget.deviceIp != null &&
+                        widget.deviceIp!.isNotEmpty) {
+                      final command = "set_prog?UF=${uf.value}";
+                      await NetworkService.sendCommandToDevice(
+                        widget.deviceIp!,
+                        command,
                       );
-                    },
-                  ),
-                  titleColor: Colors.green,
+                    }
+                  },
                 ),
-                const SizedBox(height: 30),
-                const Center(
-                  child: Text(
-                    "Schönes Feuer",
-                    style: TextStyle(color: Colors.white70),
-                  ),
+                titleColor: Colors.green,
+              ),
+              _settingBlock(
+                title: "Звуки",
+                description:
+                    "Эта настройка выключает/включает\nзвуковые уведомления.",
+                trailing: CupertinoSwitch(
+                  value: _muzEnabled,
+                  onChanged: (bool value) async {
+                    setState(() {
+                      _muzEnabled = value;
+                      muz.value = value ? 1 : 0;
+                    });
+
+                    if (widget.deviceIp != null &&
+                        widget.deviceIp!.isNotEmpty) {
+                      final command = "set_prog?muz=${muz.value}";
+                      await NetworkService.sendCommandToDevice(
+                        widget.deviceIp!,
+                        command,
+                      );
+                    }
+                  },
                 ),
-              ],
-            ),
+                titleColor: Colors.green,
+              ),
+              _settingBlock(
+                title: "Добавить устройство",
+                description:
+                    "Для подключения к Яндекс Алиса,\nподключитесь к домашней сети.",
+                trailing: IconButton(
+                  icon: const Icon(
+                    Icons.add_circle,
+                    color: Colors.green,
+                    size: 36,
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AddDeviceScreen(),
+                      ),
+                    );
+                  },
+                ),
+                titleColor: Colors.green,
+              ),
+              const SizedBox(height: 30),
+              const Center(
+                child: Text(
+                  "Schönes Feuer",
+                  style: TextStyle(color: Colors.white70),
+                ),
+              ),
+            ],
           ),
         ),
       ),
