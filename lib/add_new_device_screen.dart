@@ -174,8 +174,8 @@ class _AddNewDeviceScreenState extends State<AddNewDeviceScreen> {
         ).showSnackBar(const SnackBar(content: Text('Сохранение')));
       }
 
-      await bleManager.disconnect();
-      setState(() => isConnected = false);
+      // await bleManager.disconnect();
+      // setState(() => isConnected = false);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
