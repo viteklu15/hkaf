@@ -31,40 +31,37 @@ class BleManager {
 
 Future<bool> _checkPermissions(void Function(String onLog) onLog) async {
   if (Platform.isIOS) {
-    // ✅ Проверка гео через Geolocator
-    final geoPermission = await Geolocator.checkPermission();
-    if (geoPermission == LocationPermission.denied ||
-        geoPermission == LocationPermission.deniedForever) {
-      // final result = await Geolocator.requestPermission();
-      // onLog('📍 Георазрешение (iOS): $result');
-    }
-
-    final geoStatus = await Geolocator.checkPermission();
-    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-
-    // onLog('📡 Геослужба включена: $serviceEnabled');
-    // onLog('📍 Гео статус: $geoStatus');
-
-    // ⚠️ BLE разрешения не проверяем через permission_handler — считаем, что iOS сам покажет при необходимости
-
-    return (geoStatus == LocationPermission.always ||
-            geoStatus == LocationPermission.whileInUse) &&
-        serviceEnabled;
-  } else {
-    // ✅ Android: проверяем всё
-    final permissions = [
-      Permission.location,
-      Permission.bluetoothScan,
-      Permission.bluetoothConnect,
-    ];
-
-    final statuses = await permissions.request();
-    final allGranted = statuses.values.every((status) => status.isGranted);
-    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-
-    return allGranted && serviceEnabled;
+    // iOS: геолокация не нужна для CoreBluetooth.
+    // Системный алерт на Bluetooth покажет сама iOS при первом обращении.
+    return true;
   }
+
+  // ANDROID
+  // 1) Пробуем новые BLE-разрешения (Android 12+)
+  final scan = await Permission.bluetoothScan.request();
+  final connect = await Permission.bluetoothConnect.request();
+
+  if (scan.isGranted && connect.isGranted) {
+    // Для Android 12+ этого достаточно, геолокация не требуется.
+    return true;
+  }
+
+  // 2) Фоллбэк для Android 10–11: нужна геолокация и включенная служба
+  final loc = await Permission.location.request();
+  if (!loc.isGranted) {
+    onLog('❌ Не дано разрешение на геолокацию (нужно на Android ≤11 для BLE-сканирования)');
+    return false;
+  }
+
+  final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+  if (!serviceEnabled) {
+    onLog('❌ Геослужба отключена (включите GPS на Android ≤11 для BLE-сканирования)');
+    return false;
+  }
+
+  return true;
 }
+
 
 
 

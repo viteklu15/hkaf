@@ -27,17 +27,15 @@
 
 	<!-- 🔐 Разрешения -->
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>Для подключения и управления Bluetooth-устройствами рядом.</string>
+	<string>Приложению нужен доступ к Bluetooth для подключения и управления устройством рядом.</string>
+	<!-- Оставь ключ ниже ТОЛЬКО если реально используешь геопозицию в интерфейсе -->
+	<!-- Оставь ключ ниже ТОЛЬКО если реально используешь геопозицию в интерфейсе -->
+	<!--
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Доступ к геопозиции используется для поиска устройств поблизости.</string>
+	<string>Геолокация используется для функций, связанных с местоположением.</string>
+	-->
 	<key>NSCameraUsageDescription</key>
 	<string>Камера используется для сканирования QR-кодов при добавлении устройств.</string>
-
-	<!-- ⚙️ Фоновая геолокация (если используешь) -->
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>location</string>
-	</array>
 
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
@@ -46,14 +44,13 @@
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
 
-	<!-- 🔄 Поддержка ориентаций -->
+	<!-- 🔄 Ориентации -->
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
